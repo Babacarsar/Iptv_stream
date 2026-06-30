@@ -198,9 +198,9 @@ export function HomePage() {
               <div className="mb-6 max-w-3xl p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-100 text-sm">
                 <p className="font-medium mb-1">Chaînes sénégalaises (RTS, TFM, 2STV…)</p>
                 <p className="text-amber-200/90">
-                  Ces flux sont en HTTP et nécessitent un proxy CORS sur le site en HTTPS. Déployez le
-                  worker Cloudflare (<code className="text-xs">worker/</code>), ajoutez l&apos;URL en secret{' '}
-                  <code className="text-xs">VITE_STREAM_PROXY</code> sur GitHub, puis relancez le déploiement.
+                  Ces flux sont en HTTP. Le proxy Cloudflare Workers est bloqué par le serveur SN — utilisez le
+                  proxy Express (<code className="text-xs">server/</code>) déployé sur Render ou un tunnel.
+                  Secret GitHub : <code className="text-xs">VITE_STREAM_PROXY</code>.
                   En local : <code className="text-xs">npm run dev:all</code>.
                 </p>
               </div>
