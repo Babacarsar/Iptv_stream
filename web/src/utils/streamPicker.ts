@@ -38,7 +38,9 @@ function streamScore(stream: Stream): number {
   const rank = qualityRank(stream)
   let score = 100 - rank
 
-  if (isHttps(stream.url)) score += 5
+  // Sur GitHub Pages (HTTPS), les flux http:// sont bloqués par le navigateur
+  if (isHttps(stream.url)) score += 100
+  else score -= 100
 
   const label = stream.label?.toLowerCase() ?? ''
   if (label.includes('geo')) score -= 50
@@ -47,7 +49,7 @@ function streamScore(stream: Stream): number {
   return score
 }
 
-/** Garde une source par chaîne, en privilégiant 360p ou la qualité la plus basse disponible. */
+/** Garde une source par chaîne : HTTPS prioritaire, puis qualité la plus légère. */
 export function pickLightestStreams(streams: Stream[]): Stream[] {
   const byChannel = new Map<string, Stream>()
 

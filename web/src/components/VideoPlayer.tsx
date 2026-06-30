@@ -86,6 +86,11 @@ export function VideoPlayer({ url, referrer, userAgent, title, onError, transcod
 
     let cancelled = false
 
+    if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+      onErrorRef.current?.('Flux HTTP bloqué — cette chaîne nécessite une source HTTPS.')
+      return
+    }
+
     const cleanup = () => {
       cancelled = true
       if (hlsRef.current) {
