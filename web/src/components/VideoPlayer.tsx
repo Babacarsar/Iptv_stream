@@ -200,7 +200,7 @@ export function VideoPlayer({
   }, [currentUrl, urlIndex, allUrls.length, referrer, userAgent, transcoded])
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
+    <div className="relative w-full aspect-video bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-2xl">
       <video
         ref={videoRef}
         className="w-full h-full"
@@ -210,11 +210,11 @@ export function VideoPlayer({
         preload="auto"
         title={title}
       />
-      <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-sm pointer-events-none">
-        <span className="w-2 h-2 rounded-full bg-red-500 live-dot" />
-        <span className="text-sm font-medium">EN DIRECT</span>
+      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-black/70 backdrop-blur-sm pointer-events-none">
+        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 live-dot" />
+        <span className="text-xs sm:text-sm font-medium">EN DIRECT</span>
       </div>
-      <div className="absolute top-4 right-4 px-2 py-1 rounded bg-black/70 backdrop-blur-sm text-xs font-medium pointer-events-none">
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded bg-black/70 backdrop-blur-sm text-[10px] sm:text-xs font-medium pointer-events-none max-w-[45%] truncate">
         {transcoded ? '360p transcodé' : `max ${MAX_STREAM_HEIGHT}p`}
         {allUrls.length > 1 && urlIndex > 0 ? ` · source ${urlIndex + 1}` : ''}
       </div>

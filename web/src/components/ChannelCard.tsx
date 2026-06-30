@@ -45,9 +45,9 @@ export const ChannelCard = memo(function ChannelCard({
       type="button"
       onClick={onClick}
       className={`
-        group relative flex flex-col items-center gap-2 p-3 rounded-xl
+        group relative flex flex-col items-center gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-lg sm:rounded-xl
         transition-all duration-200 cursor-pointer text-left w-full
-        hover:bg-surface-overlay hover:scale-[1.03]
+        hover:bg-surface-overlay active:scale-[0.98] sm:hover:scale-[1.03]
         ${active ? 'bg-surface-overlay ring-2 ring-accent' : 'bg-surface-raised'}
       `}
     >

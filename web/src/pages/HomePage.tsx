@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, Loader2, Radio } from 'lucide-react'
 import { ChannelGrid } from '@/components/ChannelGrid'
 import { Header } from '@/components/Header'
@@ -28,11 +28,26 @@ export function HomePage() {
     transcodeConfigured ? null : false,
   )
   const [useDirectStream, setUseDirectStream] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const playerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!transcodeConfigured) return
     checkTranscodeServer().then(setTranscodeAvailable)
   }, [transcodeConfigured])
+
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false)
+    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [sidebarOpen])
 
   const source = useMemo(
     () => (activeId ? { type: activeType, id: activeId } : null),
@@ -72,6 +87,11 @@ export function HomePage() {
     if (selected?.url === stream.url) return
     setSelected(stream)
     setPlayerError(null)
+    if (window.innerWidth < 1024) {
+      requestAnimationFrame(() => {
+        playerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    }
   }
 
   if (catalogError) {
@@ -88,20 +108,22 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      <Header onMenuOpen={() => setSidebarOpen(true)} />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         <Sidebar
           countries={countries}
           categories={categories}
           activeType={activeType}
           activeId={activeId}
+          mobileOpen={sidebarOpen}
+          onMobileClose={() => setSidebarOpen(false)}
           onSelectCountry={handleSelectCountry}
           onSelectCategory={handleSelectCategory}
         />
 
-        <main className="flex-1 overflow-y-auto">
-          <section className="relative px-6 pt-6 pb-4">
+        <main className="flex-1 overflow-y-auto min-w-0">
+          <section ref={playerRef} className="relative px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
             {selected ? (
               <div className="max-w-5xl mx-auto">
                 {transcodeAvailable === null ? (
@@ -137,9 +159,9 @@ export function HomePage() {
                     {useDirectStream ? '↩ Revenir au transcodage 360p' : '→ Lecture directe (sans transcodage)'}
                   </button>
                 )}
-                <div className="mt-4 flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold">{selected.title}</h2>
+                <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                  <div className="min-w-0">
+                    <h2 className="text-xl sm:text-2xl font-bold truncate">{selected.title}</h2>
                     <p className="text-muted text-sm mt-1">{selected.groupTitle}</p>
                     {selected.label && (
                       <span className="inline-block mt-2 text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-300">
@@ -161,9 +183,9 @@ export function HomePage() {
                 )}
               </div>
             ) : (
-              <div className="max-w-5xl mx-auto rounded-xl bg-gradient-to-br from-surface-overlay to-surface-raised border border-border p-12 text-center">
-                <Radio className="w-16 h-16 text-accent mx-auto mb-4 opacity-80" />
-                <h2 className="text-2xl font-bold mb-2">Bienvenue sur Babacar Streaming</h2>
+              <div className="max-w-5xl mx-auto rounded-xl bg-gradient-to-br from-surface-overlay to-surface-raised border border-border p-8 sm:p-12 text-center">
+                <Radio className="w-12 h-12 sm:w-16 sm:h-16 text-accent mx-auto mb-4 opacity-80" />
+                <h2 className="text-xl sm:text-2xl font-bold mb-2">Bienvenue sur Babacar Streaming</h2>
                 <p className="text-muted max-w-lg mx-auto">
                   Sélectionnez une chaîne pour démarrer la lecture instantanément.
                 </p>
@@ -171,7 +193,7 @@ export function HomePage() {
             )}
           </section>
 
-          <section className="px-6 pb-8">
+          <section className="px-4 sm:px-6 pb-6 sm:pb-8">
             {needsSenegalProxy && (
               <div className="mb-6 max-w-3xl p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-100 text-sm">
                 <p className="font-medium mb-1">Chaînes sénégalaises (RTS, TFM, 2STV…)</p>

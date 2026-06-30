@@ -20,7 +20,12 @@
     "postinstall": "npm run api:load",
     "dev:web": "npm run dev --prefix web",
     "dev:transcode": "npm run dev --prefix server",
-    "dev:all": "npm run dev:all --prefix web"
+    "dev:all": "npm run dev:all --prefix web",
+    "gh:runs": "gh run list -R Babacarsar/Iptv_stream --limit 10",
+    "gh:deploy": "gh workflow run deploy-babacar-streaming.yml -R Babacarsar/Iptv_stream",
+    "gh:deploy:watch": "gh run watch -R Babacarsar/Iptv_stream",
+    "gh:deploy:logs": "gh run view -R Babacarsar/Iptv_stream --log-failed",
+    "gh:proxy": "gh workflow run deploy-stream-proxy.yml -R Babacarsar/Iptv_stream"
   },
   "jest": {
     "transform": {
