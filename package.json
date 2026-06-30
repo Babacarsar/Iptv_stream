@@ -17,7 +17,10 @@
     "report:create": "tsx scripts/commands/report/create.ts",
     "lint": "npx eslint \"scripts/**/*.{ts,js}\" \"tests/**/*.{ts,js}\"",
     "test": "jest --runInBand",
-    "postinstall": "npm run api:load"
+    "postinstall": "npm run api:load",
+    "dev:web": "npm run dev --prefix web",
+    "dev:transcode": "npm run dev --prefix server",
+    "dev:all": "npm run dev:all --prefix web"
   },
   "jest": {
     "transform": {

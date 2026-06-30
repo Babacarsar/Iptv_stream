@@ -7,3 +7,7 @@ node_modules
 /.api/
 .env
 /temp/
+web/node_modules
+web/dist
+server/node_modules
+server/.streams

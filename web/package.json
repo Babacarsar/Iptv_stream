@@ -1,0 +1,33 @@
+{
+  "name": "babacar-streaming",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:transcode": "npm run dev --prefix ../server",
+    "dev:all": "concurrently -n web,transcode -c blue,magenta \"npm run dev\" \"npm run dev:transcode\"",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "preview:pages": "vite preview --base /Iptv_stream/"
+  },
+  "dependencies": {
+    "hls.js": "^1.6.2",
+    "iptv-playlist-parser": "^0.15.1",
+    "lucide-react": "^0.511.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "@types/node": "^22.15.29",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.5.1",
+    "concurrently": "^9.1.2",
+    "tailwindcss": "^4.1.8",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5"
+  }
+}
