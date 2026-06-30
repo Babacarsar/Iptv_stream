@@ -6,5 +6,7 @@ export function isStreamProxyEnabled(): boolean {
 
 export function proxifyStreamUrl(url: string): string {
   if (!PROXY_BASE) return url
-  return `${PROXY_BASE}?url=${encodeURIComponent(url)}`
+  const base = PROXY_BASE.replace(/\/$/, '')
+  const proxyRoot = base.includes('.workers.dev') ? base : `${base}/proxy`
+  return `${proxyRoot}?url=${encodeURIComponent(url)}`
 }
