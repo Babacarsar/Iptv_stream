@@ -11,3 +11,5 @@ web/node_modules
 web/dist
 server/node_modules
 server/.streams
+worker/node_modules
+worker/.wrangler

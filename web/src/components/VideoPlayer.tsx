@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Hls, { type HlsConfig } from 'hls.js'
 import { MAX_STREAM_HEIGHT } from '@/utils/streamPicker'
+import { isStreamProxyEnabled, proxifyStreamUrl } from '@/utils/streamProxy'
 
 interface VideoPlayerProps {
   url: string
+  alternateUrls?: string[]
   referrer?: string
   userAgent?: string
   title: string
@@ -45,6 +47,8 @@ function capHlsToMaxHeight(hls: Hls, maxHeight: number): number {
 }
 
 function createSmoothHlsConfig(referrer?: string, userAgent?: string): Partial<HlsConfig> {
+  const useProxy = isStreamProxyEnabled()
+
   return {
     enableWorker: true,
     lowLatencyMode: false,
@@ -60,34 +64,64 @@ function createSmoothHlsConfig(referrer?: string, userAgent?: string): Partial<H
     liveSyncDurationCount: 3,
     liveMaxLatencyDurationCount: 10,
     maxLiveSyncPlaybackRate: 1.25,
-    fragLoadingMaxRetry: 8,
+    fragLoadingMaxRetry: 6,
     fragLoadingRetryDelay: 500,
-    manifestLoadingMaxRetry: 6,
+    manifestLoadingMaxRetry: 4,
     manifestLoadingRetryDelay: 500,
-    levelLoadingMaxRetry: 6,
+    levelLoadingMaxRetry: 4,
     levelLoadingRetryDelay: 500,
-    xhrSetup(xhr) {
-      if (referrer) xhr.setRequestHeader('Referer', referrer)
-      if (userAgent) xhr.setRequestHeader('User-Agent', userAgent)
+    xhrSetup(xhr, url) {
+      if (useProxy) {
+        if (userAgent) xhr.setRequestHeader('X-Stream-User-Agent', userAgent)
+        if (referrer) xhr.setRequestHeader('X-Stream-Referer', referrer)
+      } else {
+        if (referrer) xhr.setRequestHeader('Referer', referrer)
+        if (userAgent) xhr.setRequestHeader('User-Agent', userAgent)
+      }
+      void url
     },
   }
 }
 
-export function VideoPlayer({ url, referrer, userAgent, title, onError, transcoded }: VideoPlayerProps) {
+export function VideoPlayer({
+  url,
+  alternateUrls = [],
+  referrer,
+  userAgent,
+  title,
+  onError,
+  transcoded,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
   const onErrorRef = useRef(onError)
+  const [urlIndex, setUrlIndex] = useState(0)
+
+  const allUrls = useMemo(() => [url, ...alternateUrls], [url, alternateUrls])
+  const currentUrl = allUrls[urlIndex] ?? url
 
   onErrorRef.current = onError
 
   useEffect(() => {
+    setUrlIndex(0)
+  }, [url, alternateUrls])
+
+  useEffect(() => {
     const video = videoRef.current
-    if (!video || !url) return
+    if (!video || !currentUrl) return
 
     let cancelled = false
+    let networkRetries = 0
 
-    if (window.location.protocol === 'https:' && url.startsWith('http://')) {
-      onErrorRef.current?.('Flux HTTP bloqué — cette chaîne nécessite une source HTTPS.')
+    const useProxy = isStreamProxyEnabled()
+    if (window.location.protocol === 'https:' && currentUrl.startsWith('http://') && !useProxy) {
+      if (urlIndex < allUrls.length - 1) {
+        setUrlIndex((i) => i + 1)
+        return
+      }
+      onErrorRef.current?.(
+        'Flux HTTP bloqué sur ce site. Déployez le proxy Cloudflare (dossier worker/) puis configurez VITE_STREAM_PROXY.',
+      )
       return
     }
 
@@ -102,50 +136,68 @@ export function VideoPlayer({ url, referrer, userAgent, title, onError, transcod
       video.load()
     }
 
-    const isHls = url.includes('.m3u8') || url.includes('.m3u')
+    const tryNextSource = () => {
+      if (urlIndex < allUrls.length - 1) {
+        setUrlIndex((i) => i + 1)
+        return true
+      }
+      return false
+    }
+
+    const isHls = currentUrl.includes('.m3u8') || currentUrl.includes('.m3u')
+    const playUrl = useProxy ? proxifyStreamUrl(currentUrl) : currentUrl
 
     if (isHls && Hls.isSupported()) {
       const hls = new Hls(createSmoothHlsConfig(referrer, userAgent))
       hlsRef.current = hls
-      hls.loadSource(url)
+      hls.loadSource(playUrl)
       hls.attachMedia(video)
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (cancelled) return
+        networkRetries = 0
         if (!transcoded) capHlsToMaxHeight(hls, MAX_STREAM_HEIGHT)
         video.play().catch(() => {})
       })
 
       hls.on(Hls.Events.ERROR, (_, data) => {
-        if (cancelled) return
-
-        if (!data.fatal) return
+        if (cancelled || !data.fatal) return
 
         switch (data.type) {
           case Hls.ErrorTypes.NETWORK_ERROR:
-            hls.startLoad()
+            if (networkRetries < 2) {
+              networkRetries++
+              hls.startLoad()
+            } else if (!tryNextSource()) {
+              onErrorRef.current?.('Flux inaccessible — essayez une autre chaîne.')
+              cleanup()
+            }
             break
           case Hls.ErrorTypes.MEDIA_ERROR:
             hls.recoverMediaError()
             break
           default:
-            onErrorRef.current?.('Impossible de lire ce flux.')
-            cleanup()
+            if (!tryNextSource()) {
+              onErrorRef.current?.('Impossible de lire ce flux.')
+              cleanup()
+            }
             break
         }
       })
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url
-      video.play().catch(() => {})
-    } else {
-      video.src = url
+      video.src = playUrl
       video.play().catch(() => {
-        onErrorRef.current?.('Format non supporté par votre navigateur.')
+        if (!tryNextSource()) onErrorRef.current?.('Lecture impossible.')
+      })
+    } else {
+      video.src = playUrl
+      video.play().catch(() => {
+        if (!tryNextSource()) onErrorRef.current?.('Format non supporté.')
       })
     }
 
     return cleanup
-  }, [url, referrer, userAgent, transcoded])
+  }, [currentUrl, urlIndex, allUrls.length, referrer, userAgent, transcoded])
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
@@ -164,6 +216,7 @@ export function VideoPlayer({ url, referrer, userAgent, title, onError, transcod
       </div>
       <div className="absolute top-4 right-4 px-2 py-1 rounded bg-black/70 backdrop-blur-sm text-xs font-medium pointer-events-none">
         {transcoded ? '360p transcodé' : `max ${MAX_STREAM_HEIGHT}p`}
+        {allUrls.length > 1 && urlIndex > 0 ? ` · source ${urlIndex + 1}` : ''}
       </div>
     </div>
   )

@@ -31,6 +31,8 @@ jobs:
 
       - name: Install and build
         working-directory: web
+        env:
+          VITE_STREAM_PROXY: ${{ secrets.VITE_STREAM_PROXY }}
         run: |
           npm ci
           npm run build

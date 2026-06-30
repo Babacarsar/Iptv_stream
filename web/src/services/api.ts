@@ -140,8 +140,8 @@ export function parseM3U(content: string): Stream[] {
 export async function getPlaylistByCountry(code: string): Promise<Stream[]> {
   const normalized = code.toLowerCase()
   return fetchPlaylistM3U([
-    `${IPTV_BASE}/countries/${normalized}.m3u`,
     `${IPTV_BASE}/sources/${normalized}.m3u`,
+    `${IPTV_BASE}/countries/${normalized}.m3u`,
   ])
 }
 

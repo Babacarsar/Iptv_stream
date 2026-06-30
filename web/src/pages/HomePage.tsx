@@ -11,6 +11,7 @@ import { usePlaylist } from '@/hooks/useCatalog'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { searchStreams } from '@/services/api'
 import { checkTranscodeServer, isTranscodeConfigured } from '@/services/transcode'
+import { isStreamProxyEnabled } from '@/utils/streamProxy'
 import type { Stream } from '@/types'
 
 export function HomePage() {
@@ -46,6 +47,12 @@ export function HomePage() {
     activeType === 'country'
       ? countries.find((c) => c.code.toLowerCase() === activeId)?.name ?? activeId.toUpperCase()
       : categories.find((c) => c.id === activeId)?.name ?? activeId
+
+  const needsSenegalProxy =
+    activeType === 'country' &&
+    activeId === 'sn' &&
+    !import.meta.env.DEV &&
+    !isStreamProxyEnabled()
 
   const handleSelectCountry = (code: string) => {
     setActiveType('country')
@@ -111,8 +118,9 @@ export function HomePage() {
                       </div>
                     )}
                     <VideoPlayer
-                      key={selected.url}
+                      key={selected.id}
                       url={selected.url}
+                      alternateUrls={selected.alternates}
                       referrer={selected.referrer}
                       userAgent={selected.userAgent}
                       title={selected.title}
@@ -164,6 +172,17 @@ export function HomePage() {
           </section>
 
           <section className="px-6 pb-8">
+            {needsSenegalProxy && (
+              <div className="mb-6 max-w-3xl p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-100 text-sm">
+                <p className="font-medium mb-1">Chaînes sénégalaises (RTS, TFM, 2STV…)</p>
+                <p className="text-amber-200/90">
+                  Ces flux sont en HTTP et nécessitent un proxy CORS sur le site en HTTPS. Déployez le
+                  worker Cloudflare (<code className="text-xs">worker/</code>), ajoutez l&apos;URL en secret{' '}
+                  <code className="text-xs">VITE_STREAM_PROXY</code> sur GitHub, puis relancez le déploiement.
+                  En local : <code className="text-xs">npm run dev:all</code>.
+                </p>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h3 className="text-lg font-semibold flex items-center gap-2">

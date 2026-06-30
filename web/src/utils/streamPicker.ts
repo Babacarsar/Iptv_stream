@@ -2,6 +2,8 @@ import type { Stream } from '@/types'
 
 export const MAX_STREAM_HEIGHT = 360
 
+const PROXY_ENABLED = Boolean(import.meta.env.VITE_STREAM_PROXY)
+
 const QUALITY_RANK: Record<string, number> = {
   '144p': 1,
   '240p': 2,
@@ -34,13 +36,30 @@ function isHttps(url: string): boolean {
   return url.startsWith('https://')
 }
 
+function isKnownBadHost(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return host.includes('push2stream.com') || host.includes('pro-fhi.net')
+  } catch {
+    return false
+  }
+}
+
 function streamScore(stream: Stream): number {
   const rank = qualityRank(stream)
   let score = 100 - rank
 
-  // Sur GitHub Pages (HTTPS), les flux http:// sont bloqués par le navigateur
-  if (isHttps(stream.url)) score += 100
-  else score -= 100
+  if (PROXY_ENABLED) {
+    // Avec proxy : les flux HTTP sénégalais (69.64.57.208) sont les seuls fiables
+    if (isHttps(stream.url)) score += 10
+    else score += 60
+  } else if (isHttps(stream.url)) {
+    score += 50
+  } else {
+    score -= 100
+  }
+
+  if (isKnownBadHost(stream.url)) score -= 80
 
   const label = stream.label?.toLowerCase() ?? ''
   if (label.includes('geo')) score -= 50
@@ -49,18 +68,27 @@ function streamScore(stream: Stream): number {
   return score
 }
 
-/** Garde une source par chaîne : HTTPS prioritaire, puis qualité la plus légère. */
+/** Une entrée par chaîne avec URLs de secours triées par pertinence. */
 export function pickLightestStreams(streams: Stream[]): Stream[] {
-  const byChannel = new Map<string, Stream>()
+  const groups = new Map<string, Stream[]>()
 
   for (const stream of streams) {
     const key = stream.tvgId ?? stream.title
-    const existing = byChannel.get(key)
-
-    if (!existing || streamScore(stream) > streamScore(existing)) {
-      byChannel.set(key, stream)
-    }
+    const list = groups.get(key) ?? []
+    list.push(stream)
+    groups.set(key, list)
   }
 
-  return Array.from(byChannel.values()).sort((a, b) => a.title.localeCompare(b.title))
+  const result: Stream[] = []
+
+  for (const variants of groups.values()) {
+    const sorted = [...variants].sort((a, b) => streamScore(b) - streamScore(a))
+    const [primary, ...rest] = sorted
+    result.push({
+      ...primary,
+      alternates: rest.map((s) => s.url),
+    })
+  }
+
+  return result.sort((a, b) => a.title.localeCompare(b.title))
 }

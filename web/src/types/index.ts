@@ -46,6 +46,7 @@ export interface Stream {
   label?: string
   referrer?: string
   userAgent?: string
+  alternates?: string[]
 }
 
 export interface PlaylistSource {
