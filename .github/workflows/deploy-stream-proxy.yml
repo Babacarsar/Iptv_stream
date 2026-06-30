@@ -2,16 +2,10 @@ name: Deploy Stream Proxy (Cloudflare)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main, master]
-    paths:
-      - 'worker/**'
-      - '.github/workflows/deploy-stream-proxy.yml'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
